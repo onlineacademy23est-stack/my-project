@@ -110,23 +110,19 @@ function App() {
     { "q": "What is the meaning of easy?", "a": "Simple", "options": ["Simple", "Difficult", "Complicated"] }
   ];
 
-  // ✅ ONE TAB POLICY useEffect — ILAGAY ITO BAGO ANG IBANG useEffects
+  // ✅ ONE TAB POLICY useEffect
   useEffect(() => {
     const CHANNEL_NAME = "ola_single_tab_channel";
     const channel = new BroadcastChannel(CHANNEL_NAME);
     channelRef.current = channel;
 
-    // Mag-announce: "Bukas na ako, mga susunod na tab — sumuko na kayo!"
     channel.postMessage({ type: "TAB_OPENED" });
 
     channel.onmessage = (event) => {
       if (event.data?.type === "TAB_OPENED") {
-        // May bagong tab na nagbukas — ito na yung duplicate, i-block natin ang tab na iyon
-        // (pero ito mismo ang original, kaya mag-rereply tayo para malaman ng bago na may nauna na)
         channel.postMessage({ type: "TAB_ALREADY_EXISTS" });
       }
       if (event.data?.type === "TAB_ALREADY_EXISTS") {
-        // Natanggap natin ang reply — ibig sabihin, may nauna na! Ito ay duplicate tab.
         setIsDuplicateTab(true);
       }
     };
@@ -319,7 +315,7 @@ function App() {
     });
   }
 
-  // ✅ ONE TAB POLICY BLOCKER — kung duplicate tab, ipakita ito at wag na i-render ang buong app
+  // ✅ ONE TAB POLICY BLOCKER
   if (isDuplicateTab) {
     return (
       <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center p-6 z-[9999] text-center">
@@ -365,30 +361,54 @@ function App() {
         <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none"></div>
         <div className="absolute bottom-[10%] right-[-10%] w-[400px] h-[400px] bg-amber-500/5 rounded-full blur-[100px] pointer-events-none"></div>
 
-        <header className="relative flex items-center justify-between px-6 sm:px-12 py-5 border-b border-slate-900 backdrop-blur-md bg-slate-950/50 z-40">
-          <h1 onClick={() => changeScreenWithAnimation("home")} className="text-xl font-black tracking-tight text-white cursor-pointer select-none transition-all hover:opacity-80 active:scale-95">
-            Online Learning <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400">Academy</span>
-          </h1>
-          <div className="flex items-center gap-3.5">
-            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 text-slate-200 font-bold px-4 py-2 rounded-xl shadow-inner select-none transition-transform duration-300 hover:scale-105">
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-              <span className="tracking-wide text-xs font-black text-amber-400">
-                {loggedInCode ? coins.toFixed(4) : "0.0000"}$
+        {/* ── HEADER ── */}
+        <header className="relative flex items-center justify-between px-4 sm:px-8 py-3 border-b border-slate-900 backdrop-blur-md bg-slate-950/50 z-40 gap-3">
+
+          {/* LEFT SIDE: Brand on top, CoinBox below */}
+          <div className="flex flex-col items-start gap-1.5 min-w-0">
+            {/* Brand */}
+            <h1
+              onClick={() => changeScreenWithAnimation("home")}
+              className="text-base sm:text-lg font-black tracking-tight text-white cursor-pointer select-none transition-all hover:opacity-80 active:scale-95 leading-none whitespace-nowrap"
+            >
+              Online Learning{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400">
+                Academy
               </span>
+            </h1>
+
+            {/* Coin Box */}
+            <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 text-slate-200 font-bold px-3 py-1.5 rounded-lg shadow-inner select-none transition-transform duration-300 hover:scale-105 self-start">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0"></span>
+              <span className="tracking-wide text-[11px] font-black text-amber-400 whitespace-nowrap">
+                {loggedInCode ? coins.toFixed(4) : "0.0000"}COINS
+              </span>
+              <span className="text-[10px] text-slate-500 font-semibold hidden sm:inline"></span>
             </div>
-            
+          </div>
+
+          {/* RIGHT SIDE: FB Name + action button */}
+          <div className="flex items-center gap-2 flex-shrink-0">
             {loggedInCode ? (
-              <div className="flex items-center gap-2.5">
-                <div className="bg-slate-900/80 text-slate-300 font-bold px-3 py-2 rounded-xl text-xs border border-slate-800/80 flex items-center gap-1.5 backdrop-blur-sm">
-                  <span className="opacity-70">👤</span> <span className="tracking-wider text-slate-200">{loggedInFbName}</span>
+              <>
+                {/* FB Name badge — truncates gracefully on small screens */}
+                <div className="bg-slate-900/80 text-slate-300 font-bold px-2.5 py-1.5 rounded-xl text-[11px] border border-slate-800/80 flex items-center gap-1.5 backdrop-blur-sm max-w-[120px] sm:max-w-[180px] overflow-hidden">
+                  <span className="opacity-70 flex-shrink-0">👤</span>
+                  <span className="tracking-wide text-slate-200 truncate">{loggedInFbName}</span>
                 </div>
-                
-                <button onClick={handleLogout} className="bg-slate-900 hover:bg-rose-950/30 text-slate-400 hover:text-rose-400 border border-slate-800 hover:border-rose-900/50 px-3 py-2 rounded-xl text-xs font-bold transition-all active:scale-95">
+
+                <button
+                  onClick={handleLogout}
+                  className="bg-slate-900 hover:bg-rose-950/30 text-slate-400 hover:text-rose-400 border border-slate-800 hover:border-rose-900/50 px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all active:scale-95 flex-shrink-0 whitespace-nowrap"
+                >
                   Logout
                 </button>
-              </div>
+              </>
             ) : (
-              <button onClick={() => { setEncashStatus({ type: "", msg: "" }); setShowLogin(true); }} className="bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white px-5 py-2 rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-600/10 active:scale-95">
+              <button
+                onClick={() => { setEncashStatus({ type: "", msg: "" }); setShowLogin(true); }}
+                className="bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white px-4 py-2 rounded-xl text-[11px] font-bold transition-all shadow-lg shadow-indigo-600/10 active:scale-95 whitespace-nowrap"
+              >
                 Login
               </button>
             )}
