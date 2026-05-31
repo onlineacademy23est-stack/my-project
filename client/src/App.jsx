@@ -373,7 +373,7 @@ function App() {
             <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 text-slate-200 font-bold px-4 py-2 rounded-xl shadow-inner select-none transition-transform duration-300 hover:scale-105">
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
               <span className="tracking-wide text-xs font-black text-amber-400">
-                {loggedInCode ? coins.toFixed(4) : "0.0000"} COINS
+                {loggedInCode ? coins.toFixed(4) : "0.0000"}$
               </span>
             </div>
             
