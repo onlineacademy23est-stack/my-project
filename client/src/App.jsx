@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from "react";
 
 function App() {
   
-  const PATTERN_REFERENCE_1_URL = "https://scontent.fceb2-2.fna.fbcdn.net/v/t39.30808-6/322580276_472651758377824_1051405534381803150_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=rn-G0_m6eOgQ7kNvwH3t_oY&_nc_oc=AdqqkciZ5MFsTk95HtPPCQHIX-D2MH7AOd_WECP1k6XLc9zdSge-6mvtkcWB2wU5x_s&_nc_zt=23&_nc_ht=scontent.fceb2-2.fna&_nc_gid=akv9ZsTfFryRHtfHtheIog&_nc_ss=7b289&oh=00_Af7rpu8VntwBJuFI2yAF_uRsKylz4nBZpZRlWh3W2GF7EQ&oe=6A20C638";
-  const PATTERN_REFERENCE_2_URL = "https://i.postimg.cc/vTFGRry2/6744d020-d66f-402f-bac3-0c89b8f24331.jpg";
+  const PATTERN_REFERENCE_1_URL = "/images/ola-answer.jpg";
+  const PATTERN_REFERENCE_2_URL = "/images/ola-permit.jpg";
   
   const OFFICIAL_FB_PAGE_URL = "https://www.facebook.com/onlinelearningacademypage";
   
