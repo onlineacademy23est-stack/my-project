@@ -6,7 +6,7 @@ const path = require('path');
 const axios = require('axios');
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx8Jj2Yw55h5sUWZStmRrZHflygaPyyrHOM--GRgkt6T6JmPWtoWAnydhihWnVjLFmj/exec"
 app.use(cors());
