@@ -3,24 +3,31 @@ body {
   padding: 0;
   font-family: Arial, sans-serif;
   overflow-x: hidden;
+  width: 100%;
 }
 
-/* Counter - ginawang mobile-friendly */
+/* Header/Navbar Container para pantay ang Coins at Login */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px; /* Nilagyan ng padding para hindi dumikit sa gilid */
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Coins box */
 .counter {
-  font-size: 16px;
-  padding: 10px 20px;
+  font-size: 14px; /* Bahagyang pinaliit para hindi mag-overflow sa maliit na screen */
+  padding: 8px 16px;
   border-radius: 8px;
   color: var(--accent);
   background: var(--accent-bg);
   border: 2px solid transparent;
   transition: border-color 0.3s;
-  margin-bottom: 24px;
-  display: inline-block;
-  text-align: center;
-
-  &:hover {
-    border-color: var(--accent-border);
-  }
+  display: inline-flex; /* Mas maganda ang flex para sa text/icon */
+  align-items: center;
+  white-space: nowrap; /* Para hindi mag-break ang text */
 }
 
 .hero {
@@ -28,6 +35,7 @@ body {
   width: 100%;
   max-width: 400px;
   margin: 0 auto;
+  padding-top: 20px;
 
   .base, .framework, .vite {
     inset-inline: 0;
