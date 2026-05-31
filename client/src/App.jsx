@@ -364,46 +364,34 @@ function App() {
         {/* ── HEADER ── */}
         <header className="relative flex items-center justify-between px-4 sm:px-8 py-3 border-b border-slate-900 backdrop-blur-md bg-slate-950/50 z-40 gap-3">
 
-          {/* LEFT SIDE: Brand on top, CoinBox below */}
-          <div className="flex flex-col items-start gap-1.5 min-w-0">
-            {/* Brand */}
-            <h1
-              onClick={() => changeScreenWithAnimation("home")}
-              className="text-base sm:text-lg font-black tracking-tight text-white cursor-pointer select-none transition-all hover:opacity-80 active:scale-95 leading-none whitespace-nowrap"
-            >
-              Online Learning{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400">
-                Academy
-              </span>
-            </h1>
+          {/* LEFT: Brand */}
+          <h1
+            onClick={() => changeScreenWithAnimation("home")}
+            className="text-base sm:text-lg font-black tracking-tight text-white cursor-pointer select-none transition-all hover:opacity-80 active:scale-95 leading-none whitespace-nowrap flex-shrink-0"
+          >
+            Online Learning{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400">
+              Academy
+            </span>
+          </h1>
 
-            {/* Coin Box */}
-            <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 text-slate-200 font-bold px-3 py-1.5 rounded-lg shadow-inner select-none transition-transform duration-300 hover:scale-105 self-start">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0"></span>
-              <span className="tracking-wide text-[11px] font-black text-amber-400 whitespace-nowrap">
-                {loggedInCode ? coins.toFixed(4) : "0.0000"}COINS
-              </span>
-              <span className="text-[10px] text-slate-500 font-semibold hidden sm:inline"></span>
-            </div>
-          </div>
-
-          {/* RIGHT SIDE: FB Name + action button */}
+          {/* RIGHT: Coins + FB Name side by side, or Login button */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            {loggedInCode ? (
-              <>
-                {/* FB Name badge — truncates gracefully on small screens */}
-                <div className="bg-slate-900/80 text-slate-300 font-bold px-2.5 py-1.5 rounded-xl text-[11px] border border-slate-800/80 flex items-center gap-1.5 backdrop-blur-sm max-w-[120px] sm:max-w-[180px] overflow-hidden">
-                  <span className="opacity-70 flex-shrink-0">👤</span>
-                  <span className="tracking-wide text-slate-200 truncate">{loggedInFbName}</span>
-                </div>
+            {/* Coin Box — always visible */}
+            <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg shadow-inner select-none transition-transform duration-300 hover:scale-105">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0"></span>
+              <span className="text-[11px] font-black text-amber-400 whitespace-nowrap">
+                {loggedInCode ? coins.toFixed(4) : "0.0000"}
+              </span>
+              <span className="text-[10px] font-semibold text-slate-500">COINS</span>
+            </div>
 
-                <button
-                  onClick={handleLogout}
-                  className="bg-slate-900 hover:bg-rose-950/30 text-slate-400 hover:text-rose-400 border border-slate-800 hover:border-rose-900/50 px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all active:scale-95 flex-shrink-0 whitespace-nowrap"
-                >
-                  Logout
-                </button>
-              </>
+            {loggedInCode ? (
+              /* FB Name badge — no logout here, moved to earn screen */
+              <div className="bg-slate-900/80 text-slate-300 font-bold px-2.5 py-1.5 rounded-xl text-[11px] border border-slate-800/80 flex items-center gap-1.5 backdrop-blur-sm max-w-[110px] sm:max-w-[170px] overflow-hidden">
+                <span className="opacity-70 flex-shrink-0">👤</span>
+                <span className="tracking-wide text-slate-200 truncate">{loggedInFbName}</span>
+              </div>
             ) : (
               <button
                 onClick={() => { setEncashStatus({ type: "", msg: "" }); setShowLogin(true); }}
@@ -507,6 +495,9 @@ function App() {
                   </button>
                   <button onClick={() => setShowGuide(true)} className="w-full bg-slate-900/50 hover:bg-slate-900 text-slate-400 py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-slate-800/40">
                     <span>📘</span> View Answer Keys & Rules
+                  </button>
+                  <button onClick={handleLogout} className="w-full bg-slate-900/30 hover:bg-rose-950/20 text-slate-600 hover:text-rose-400 border border-slate-800/30 hover:border-rose-900/40 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center justify-center gap-1.5">
+                    <span>↩</span> Logout
                   </button>
                 </div>
               </div>
