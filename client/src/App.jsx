@@ -307,7 +307,7 @@ function App() {
       setCoins(newBalance);
       localStorage.setItem(`coins_${loggedInCode}`, newBalance);
  
-      setEncashStatus({ type: "success", msg: "✅ Request recorded globally!" });
+      setEncashStatus({ type: "success", msg: "✅ Request recorded!" });
       setTimeout(() => setShowEncashModal(false), 2000);
     })
     .catch(() => {
