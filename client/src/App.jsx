@@ -667,7 +667,7 @@ function App() {
             />
           </div>
           
-          <p className="text-slate-500 text-xs mt-4 font-medium select-none">I-click kahit saan para isara ang preview</p>
+          <p className="text-slate-500 text-xs mt-4 font-medium select-none"></p>
         </div>
       )}
 
