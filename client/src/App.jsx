@@ -375,31 +375,13 @@ function App() {
             </span>
           </h1>
 
-          {/* RIGHT: Coins + FB Name side by side, or Login button */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {/* Coin Box — always visible */}
-            <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg shadow-inner select-none transition-transform duration-300 hover:scale-105">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0"></span>
-              <span className="text-[11px] font-black text-amber-400 whitespace-nowrap">
-                {loggedInCode ? coins.toFixed(4) : "0.0000"}
-              </span>
-              <span className="text-[10px] font-semibold text-slate-500">COINS</span>
-            </div>
-
-            {loggedInCode ? (
-              /* FB Name badge — no logout here, moved to earn screen */
-              <div className="bg-slate-900/80 text-slate-300 font-bold px-2.5 py-1.5 rounded-xl text-[11px] border border-slate-800/80 flex items-center gap-1.5 backdrop-blur-sm max-w-[110px] sm:max-w-[170px] overflow-hidden">
-                <span className="opacity-70 flex-shrink-0">👤</span>
-                <span className="tracking-wide text-slate-200 truncate">{loggedInFbName}</span>
-              </div>
-            ) : (
-              <button
-                onClick={() => { setEncashStatus({ type: "", msg: "" }); setShowLogin(true); }}
-                className="bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white px-4 py-2 rounded-xl text-[11px] font-bold transition-all shadow-lg shadow-indigo-600/10 active:scale-95 whitespace-nowrap"
-              >
-                Login
-              </button>
-            )}
+          {/* RIGHT: Coins only */}
+          <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg shadow-inner select-none transition-transform duration-300 hover:scale-105">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0"></span>
+            <span className="text-[11px] font-black text-amber-400 whitespace-nowrap">
+              {loggedInCode ? coins.toFixed(4) : "0.0000"}
+            </span>
+            <span className="text-[10px] font-semibold text-slate-500">COINS</span>
           </div>
         </header>
 
