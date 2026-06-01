@@ -12,7 +12,7 @@ const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx8Jj2Yw55h5s
 app.use(cors());
 app.use(express.json());
 
-// ✅ MySQL Pool
+// ✅ MySQL Pool - may PORT na para sa Railway
 const pool = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
@@ -108,11 +108,16 @@ app.post('/api/withdraw', async (req, res) => {
     }
 
     try {
+        // Save withdrawal with labCode
         const sql = "INSERT INTO withdrawals (lab_code, fb_name, amount, status) VALUES (?, ?, ?, 'pending')";
         await pool.query(sql, [labCode || "N/A", fbName, amount]);
-        
-        await upsertUser(labCode || "N/A", fbName, amount);
+        console.log("📝 [MySQL]: Withdrawal saved!");
 
+        // Track user
+        await upsertUser(labCode || "N/A", fbName, amount);
+        console.log("👤 [MySQL]: User tracked!");
+
+        // Send to Google Sheets
         const params = new URLSearchParams();
         params.append('timestamp', new Date().toLocaleString());
         params.append('labCode', labCode || "N/A");
