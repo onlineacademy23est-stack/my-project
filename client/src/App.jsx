@@ -195,49 +195,50 @@ function App() {
     }
   }
 
+  // ✅ UPDATED: handleLogin now validates against MySQL via backend
   async function handleLogin() {
-  if (!fbName.trim()) {
-    setEncashStatus({ type: "error", msg: "Please enter your Registered FB Name!" });
-    return;
-  }
-  if (!code) {
-    setEncashStatus({ type: "error", msg: "Please enter your LAB Code!" });
-    return;
-  }
-
-  const formattedCode = code.toUpperCase();
-  setEncashStatus({ type: "loading", msg: "⏳ Validating, please wait..." });
-
-  try {
-    const res = await fetch("https://online-learning-backend-37l0.onrender.com/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ labCode: formattedCode, fbName: fbName.trim() })
-    });
-
-    const data = await res.json();
-
-    if (!data.success) {
-      setEncashStatus({ type: "error", msg: data.msg || "Invalid credentials!" });
+    if (!fbName.trim()) {
+      setEncashStatus({ type: "error", msg: "Please enter your Registered FB Name!" });
+      return;
+    }
+    if (!code) {
+      setEncashStatus({ type: "error", msg: "Please enter your LAB Code!" });
       return;
     }
 
-    // ✅ Valid — proceed
-    localStorage.setItem("lab_code", formattedCode);
-    localStorage.setItem("fb_name", fbName.trim());
-    setLoggedInCode(formattedCode);
-    setLoggedInFbName(fbName.trim());
-    const accountCoins = Number(parseFloat(localStorage.getItem(`coins_${formattedCode}`) || "0").toFixed(4));
-    setCoins(accountCoins);
-    setShowLogin(false);
-    setEncashStatus({ type: "", msg: "" });
-    changeScreenWithAnimation("earn");
-    setCode("");
-    setFbName("");
+    const formattedCode = code.toUpperCase();
+    setEncashStatus({ type: "loading", msg: "⏳ Validating, please wait..." });
 
-  } catch {
-    setEncashStatus({ type: "error", msg: "❌ Cannot connect to server!" });
-  }
+    try {
+      const res = await fetch("https://online-learning-backend-37l0.onrender.com/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ labCode: formattedCode, fbName: fbName.trim() })
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        setEncashStatus({ type: "error", msg: data.msg || "Invalid credentials!" });
+        return;
+      }
+
+      // ✅ Valid — proceed to earn screen
+      localStorage.setItem("lab_code", formattedCode);
+      localStorage.setItem("fb_name", fbName.trim());
+      setLoggedInCode(formattedCode);
+      setLoggedInFbName(fbName.trim());
+      const accountCoins = Number(parseFloat(localStorage.getItem(`coins_${formattedCode}`) || "0").toFixed(4));
+      setCoins(accountCoins);
+      setShowLogin(false);
+      setEncashStatus({ type: "", msg: "" });
+      changeScreenWithAnimation("earn");
+      setCode("");
+      setFbName("");
+
+    } catch {
+      setEncashStatus({ type: "error", msg: "❌ Cannot connect to server. Try again later!" });
+    }
   }
 
   function handleLogout() {
@@ -498,7 +499,7 @@ function App() {
       {showLogin && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-all duration-300">
           <div className="bg-slate-900 border border-slate-800 p-8 rounded-2xl w-full max-w-sm text-slate-100 shadow-2xl relative transition-transform transform scale-100 animate-in fade-in zoom-in-95 duration-200">
-            <button onClick={() => setShowLogin(false)} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 text-xs font-bold transition-colors">✕</button>
+            <button onClick={() => { setShowLogin(false); setEncashStatus({ type: "", msg: "" }); }} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 text-xs font-bold transition-colors">✕</button>
             <h2 className="text-xl font-black mb-2 text-white tracking-tight">Login Portal</h2>
             <p className="text-xs text-slate-500 mb-5 font-medium">Please enter your Registered FB name and LAB Code assigned to you.</p>
             
@@ -520,11 +521,18 @@ function App() {
             />
 
             {encashStatus.type === "error" && (
-              <p className="text-xs text-rose-400 font-semibold mb-4 text-center animate-shake">{encashStatus.msg}</p>
+              <p className="text-xs text-rose-400 font-semibold mb-4 text-center">{encashStatus.msg}</p>
+            )}
+            {encashStatus.type === "loading" && (
+              <p className="text-xs text-amber-400 font-semibold mb-4 text-center animate-pulse">{encashStatus.msg}</p>
             )}
 
-            <button onClick={handleLogin} className="w-full bg-gradient-to-r from-indigo-600 to-indigo-500 text-white py-3.5 rounded-xl font-bold text-sm transition-all active:scale-95 shadow-lg shadow-indigo-600/10">
-              Confirm & Authenticate
+            <button
+              onClick={handleLogin}
+              disabled={encashStatus.type === "loading"}
+              className={`w-full bg-gradient-to-r from-indigo-600 to-indigo-500 text-white py-3.5 rounded-xl font-bold text-sm transition-all active:scale-95 shadow-lg shadow-indigo-600/10 ${encashStatus.type === "loading" ? "opacity-60 cursor-not-allowed" : "hover:from-indigo-500 hover:to-indigo-400"}`}
+            >
+              {encashStatus.type === "loading" ? "Validating..." : "Confirm & Authenticate"}
             </button>
           </div>
         </div>
@@ -668,5 +676,4 @@ function App() {
     </div>
   );
 }
-
 export default App;
