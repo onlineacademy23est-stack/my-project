@@ -195,55 +195,49 @@ function App() {
     }
   }
 
-  function handleLogin() {
-    if (!fbName.trim()) {
-      setEncashStatus({ type: "error", msg: "Please enter your Registered FB Name!" });
-      return;
-    }
-    if (!code) {
-      setEncashStatus({ type: "error", msg: "Please enter your LAB Code!" });
-      return;
-    }
-    
-    const formattedCode = code.toUpperCase();
+  async function handleLogin() {
+  if (!fbName.trim()) {
+    setEncashStatus({ type: "error", msg: "Please enter your Registered FB Name!" });
+    return;
+  }
+  if (!code) {
+    setEncashStatus({ type: "error", msg: "Please enter your LAB Code!" });
+    return;
+  }
 
-    if (formattedCode === "LABADMIN") {
-      setEncashStatus({ type: "error", msg: "This code has been deactivated by the administrator!" });
-      return;
-    }
-    
-    if (formattedCode === "ADMINCODE") {
-      localStorage.setItem("lab_code", "ADMINCODE");
-      localStorage.setItem("fb_name", fbName.trim());
-      localStorage.setItem("coins_LABMASTER", "500.0000");
-      
-      setLoggedInCode("LABMASTER");
-      setLoggedInFbName(fbName.trim());
-      setCoins(500.0000);
-      setShowLogin(false);
-      changeScreenWithAnimation("earn");
-      setCode("");
-      setFbName("");
+  const formattedCode = code.toUpperCase();
+  setEncashStatus({ type: "loading", msg: "⏳ Validating, please wait..." });
+
+  try {
+    const res = await fetch("https://online-learning-backend-37l0.onrender.com/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ labCode: formattedCode, fbName: fbName.trim() })
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      setEncashStatus({ type: "error", msg: data.msg || "Invalid credentials!" });
       return;
     }
 
-    if (!formattedCode.startsWith("LAB")) {
-      setEncashStatus({ type: "error", msg: "Invalid LAB Code! It must start with 'LAB'." });
-      return;
-    }
-    
+    // ✅ Valid — proceed
     localStorage.setItem("lab_code", formattedCode);
     localStorage.setItem("fb_name", fbName.trim());
-    
     setLoggedInCode(formattedCode);
     setLoggedInFbName(fbName.trim());
     const accountCoins = Number(parseFloat(localStorage.getItem(`coins_${formattedCode}`) || "0").toFixed(4));
     setCoins(accountCoins);
     setShowLogin(false);
+    setEncashStatus({ type: "", msg: "" });
     changeScreenWithAnimation("earn");
-    
     setCode("");
     setFbName("");
+
+  } catch {
+    setEncashStatus({ type: "error", msg: "❌ Cannot connect to server!" });
+  }
   }
 
   function handleLogout() {
@@ -285,7 +279,7 @@ function App() {
       setEncashStatus({ type: "error", msg: `❌ Insufficient balance!` });
       return;
     }
-
+     
     const BACKEND_SERVER_URL = "https://online-learning-backend-37l0.onrender.com/api/withdraw";
     setEncashStatus({ type: "loading", msg: "⏳ Requesting, please wait..." });
     
