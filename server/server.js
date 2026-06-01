@@ -2,7 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
-const mysql = require('mysql2');
+const mysql = require('mysql2/promise'); // Gamitin ang 'promise' version para sa async/await
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -12,20 +12,16 @@ const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx8Jj2Yw55h5s
 app.use(cors());
 app.use(express.json());
 
-// MySQL Database Connection
-const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: 'root123', // Ilagay ang password mo kung meron sa XAMPP
-    database: 'OnlineLearningAcademy'
-});
-
-db.connect((err) => {
-    if (err) {
-        console.error('❌ Database connection failed:', err);
-    } else {
-        console.log('✅ Connected to MySQL Database (OnlineLearningAcademy)!');
-    }
+// MySQL Database Connection Pool
+// PALITAN MO ANG MGA VALUE NA ITO NG MGA CREDENTIALS MULA SA RENDER/DB PROVIDER MO
+const pool = mysql.createPool({
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || 'root123',
+    database: process.env.DB_NAME || 'OnlineLearningAcademy',
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
 });
 
 // Retry function para sa Google Sheets
@@ -45,22 +41,14 @@ app.post('/api/withdraw', async (req, res) => {
 
     const { labCode, fbName, amount } = req.body;
 
-    // 1. MySQL: I-save sa database ang payout request
+    // 1. MySQL: I-save sa database gamit ang pool.query
     const sql = "INSERT INTO withdrawals (fb_name, amount, status) VALUES (?, ?, ?)";
     
     try {
-        // I-execute ang query
-        await new Promise((resolve, reject) => {
-            db.query(sql, [fbName, amount, 'pending'], (err, result) => {
-                if (err) reject(err);
-                else {
-                    console.log("📝 [MySQL]: Payout saved to database!");
-                    resolve(result);
-                }
-            });
-        });
+        await pool.query(sql, [fbName, amount, 'pending']);
+        console.log("📝 [MySQL]: Payout saved to database!");
 
-        // 2. Google Sheets: I-sync pa rin para sa backup
+        // 2. Google Sheets: I-sync para sa backup
         const params = new URLSearchParams();
         params.append('timestamp', new Date().toLocaleString());
         params.append('labCode', labCode || "N/A");
