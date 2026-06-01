@@ -3,9 +3,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const codeInput = document.getElementById("lab-code");
     const nameInput = document.getElementById("fb-name");
 
-    loginButton.addEventListener("click", async () => {
-        const labCode = codeInput.value;
-        const fbName = nameInput.value;
+    loginButton.addEventListener("click", async (e) => { // Idinagdag ang 'e'
+        e.preventDefault(); // <--- ITO ANG IMPORTANTE: Pinipigilan nito ang page refresh
+
+        const labCode = codeInput.value.trim(); // .trim() para tanggalin ang extra spaces
+        const fbName = nameInput.value.trim();
 
         if (!labCode || !fbName) {
             alert("Enter LAB ID and FB Name!");
@@ -23,18 +25,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 body: JSON.stringify({ labCode, fbName })
             });
 
+            // I-check kung valid JSON ang sagot ng server
+            if (!response.ok) {
+                throw new Error("Server error, status: " + response.status);
+            }
+
             const data = await response.json();
 
             if (data.success) {
-                // SUCCESS: I-save sa localStorage
+                // SUCCESS
                 localStorage.setItem("lab_code", labCode);
                 localStorage.setItem("fb_name", fbName);
                 
                 alert("Login successful! ✅");
-                window.location.href = "dashboard.html"; // Dito ka i-re-redirect
+                window.location.href = "dashboard.html"; 
             } else {
-                // FAIL: Ipakita ang error galing sa server
-                alert(data.msg || "Login failed.");
+                // FAIL
+                alert(data.msg || "Login failed. Check your credentials.");
             }
         } catch (err) {
             console.error("Login Error:", err);
