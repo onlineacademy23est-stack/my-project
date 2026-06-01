@@ -1,52 +1,47 @@
-import { useState } from "react";
+document.addEventListener("DOMContentLoaded", () => {
+    const loginButton = document.getElementById("login-btn");
+    const codeInput = document.getElementById("lab-code");
+    const nameInput = document.getElementById("fb-name");
 
-export default function Login() {
-  const [code, setCode] = useState("");
-  const [loggedIn, setLoggedIn] = useState(false);
+    loginButton.addEventListener("click", async () => {
+        const labCode = codeInput.value;
+        const fbName = nameInput.value;
 
-  function handleLogin() {
-    if (!code) {
-      alert("Enter LAB ID!");
-      return;
-    }
+        if (!labCode || !fbName) {
+            alert("Enter LAB ID and FB Name!");
+            return;
+        }
 
-    if (!code.startsWith("LAB")) {
-      alert("Invalid LAB ID!");
-      return;
-    }
+        // I-disable ang button habang naglo-load
+        loginButton.disabled = true;
+        loginButton.innerText = "Logging in...";
 
-    // SAVE LOGIN
-    localStorage.setItem("lab_code", code);
+        try {
+            const response = await fetch("https://online-learning-backend-3710.onrender.com/api/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ labCode, fbName })
+            });
 
-    // SHOW RESULT SCREEN
-    setLoggedIn(true);
-  }
+            const data = await response.json();
 
-  if (loggedIn) {
-    return (
-      <div style={{ padding: "20px" }}>
-        <h1>Login Successful ✅</h1>
-        <h2>Your LAB ID:</h2>
-        <h3>{code}</h3>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ padding: "20px" }}>
-      <h2>Enter LAB ID</h2>
-
-      <input
-        value={code}
-        onChange={(e) => setCode(e.target.value)}
-        placeholder="e.g. LAB123"
-      />
-
-      <br /><br />
-
-      <button onClick={handleLogin}>
-        Login
-      </button>
-    </div>
-  );
-}
+            if (data.success) {
+                // SUCCESS: I-save sa localStorage
+                localStorage.setItem("lab_code", labCode);
+                localStorage.setItem("fb_name", fbName);
+                
+                alert("Login successful! ✅");
+                window.location.href = "dashboard.html"; // Dito ka i-re-redirect
+            } else {
+                // FAIL: Ipakita ang error galing sa server
+                alert(data.msg || "Login failed.");
+            }
+        } catch (err) {
+            console.error("Login Error:", err);
+            alert("Hindi maka-connect sa server. Check your internet.");
+        } finally {
+            loginButton.disabled = false;
+            loginButton.innerText = "Login";
+        }
+    });
+});
