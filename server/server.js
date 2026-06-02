@@ -44,6 +44,8 @@ async function postWithRetry(url, data, config, retries = 3) {
 
 // ✅ LOGIN / REGISTRATION VALIDATION
 app.post('/api/login', async (req, res) => {
+    
+    console.log('LOGIN ROUTE HIT', req.body);
 
     const connection = await pool.getConnection();
 
