@@ -1,22 +1,70 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Dashboard</title>
+    <title>Dashboard</title>
 </head>
 <body>
 
-  <h1>Welcome to Dashboard</h1>
+    <h1>Welcome to Dashboard</h1>
 
-  <p id="userCode"></p>
+    <p id="userCode">Checking access...</p>
 
-  <script>
-const code = localStorage.getItem("lab_code");
-const fbName = localStorage.getItem("fb_name");
+    <script>
 
-if (!code || !fbName) {
-    window.location.href = "login.html";
-}
-</script>
+    const BACKEND_URL = "https://online-learning-backend-3710.onrender.com";
+
+    async function verifyAccess() {
+
+        const labCode = localStorage.getItem("lab_code");
+        const fbName = localStorage.getItem("fb_name");
+
+        if (!labCode || !fbName) {
+            window.location.href = "login.html";
+            return;
+        }
+
+        try {
+
+            const response = await fetch(`${BACKEND_URL}/api/verify`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    labCode,
+                    fbName
+                })
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+
+                localStorage.removeItem("lab_code");
+                localStorage.removeItem("fb_name");
+
+                alert("Session invalid. Please login again.");
+
+                window.location.href = "login.html";
+                return;
+            }
+
+            document.getElementById("userCode").innerText =
+                `Logged in as ${fbName} (${labCode})`;
+
+        } catch (err) {
+
+            console.error(err);
+
+            alert("Unable to verify session.");
+
+            window.location.href = "login.html";
+        }
+    }
+
+    verifyAccess();
+
+    </script>
 
 </body>
 </html>
