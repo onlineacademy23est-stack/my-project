@@ -86,6 +86,13 @@ app.post('/api/login', async (req, res) => {
 
         const code = rows[0];
 
+        console.log('LOGIN CHECK', {
+    lab_code: code.lab_code,
+    status: code.status,
+    used_by: code.used_by,
+    fbName: trimmedName
+});
+
        // Code already claimed
 if (code.status === 'used') {
 
