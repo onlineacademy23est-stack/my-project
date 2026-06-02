@@ -8,6 +8,12 @@ const pool = mysql.createPool(process.env.DB_URL);
 
 app.post('/api/login', async (req, res) => {
 
+    return res.status(418).json({
+        success: false,
+        msg: "BES TEST"
+    });
+
+
     const labCode = (req.body.labCode || '').trim().toUpperCase();
     const fbName = (req.body.fbName || '').trim();
 
