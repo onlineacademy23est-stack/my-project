@@ -217,6 +217,7 @@ function App() {
       });
 
       const data = await res.json();
+      console.log("LOGIN RESPONSE:", data);
 
       if (!data.success) {
         setEncashStatus({ type: "error", msg: data.msg || "Invalid credentials!" });

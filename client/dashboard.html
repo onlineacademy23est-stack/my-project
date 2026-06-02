@@ -10,15 +10,13 @@
   <p id="userCode"></p>
 
   <script>
-    let code = localStorage.getItem("lab_code");
+const code = localStorage.getItem("lab_code");
+const fbName = localStorage.getItem("fb_name");
 
-    if (!code) {
-      window.location.href = "login.html";
-    }
-
-    document.getElementById("userCode").innerText =
-      "Your Code: " + code;
-  </script>
+if (!code || !fbName) {
+    window.location.href = "login.html";
+}
+</script>
 
 </body>
 </html>

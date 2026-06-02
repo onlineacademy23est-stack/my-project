@@ -28,6 +28,8 @@ document.addEventListener("DOMContentLoaded", () => {
             });
  
             const data = await response.json();
+
+console.log("LOGIN RESPONSE:", data);
  
             if (data.success) {
                 localStorage.setItem("lab_code", labCode);
