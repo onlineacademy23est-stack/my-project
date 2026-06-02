@@ -42,153 +42,78 @@ async function postWithRetry(url, data, config, retries = 3) {
 // ✅ API Endpoints
 // ==========================================
 
-// ✅ LOGIN / REGISTRATION VALIDATION
+// ✅ COMPLETE AND SECURED LOGIN / REGISTRATION VALIDATION
 app.post('/api/login', async (req, res) => {
+    const connection = await pool.getConnection();
 
-const connection = await pool.getConnection();
+    try {
+        const { labCode, fbName } = req.body;
 
-try {
-
-    const { labCode, fbName } = req.body;
-
-    if (!labCode || !fbName) {
-        return res.status(400).json({
-            success: false,
-            msg: "Lab code and Facebook name are required."
-        });
-    }
-
-    const trimmedCode = labCode.trim().toUpperCase();
-    const trimmedName = fbName.trim();
-
-    await connection.beginTransaction();
-
-    const [rows] = await connection.execute(
-        `
-        SELECT *
-        FROM labcode
-        WHERE lab_code = ?
-        FOR UPDATE
-        `,
-        [trimmedCode]
-    );
-
-    if (rows.length === 0) {
-
-        await connection.rollback();
-
-        return res.status(404).json({
-            success: false,
-            msg: "❌ Invalid registration code."
-        });
-    }
-
-    const code = rows[0];
-
-    console.log("DB ROW:", code);
-
-    // -------------------------------------------------
-    // CODE ALREADY HAS AN OWNER
-    // -------------------------------------------------
-    if (code.used_by && code.used_by.trim() !== "") {
-
-        // Same owner = allow login
-        if (code.used_by.trim() === trimmedName) {
-
-            await connection.commit();
-
-            return res.json({
-                success: true,
-                msg: "✅ Login successful."
-            });
+        // 1. Basic Validation
+        if (!labCode || !fbName) {
+            return res.status(400).json({ success: false, msg: "Lab code and Facebook name are required." });
         }
 
-        // Different FB name = reject
+        const trimmedCode = labCode.trim().toUpperCase();
+        const trimmedName = fbName.trim();
+
+        await connection.beginTransaction();
+
+        // 2. CHECK: Does the code exist in DB? (Strict validation)
+        // FOR UPDATE locks the row so no one else can claim it during this request
+        const [rows] = await connection.execute(
+            `SELECT used_by FROM labcode WHERE lab_code = ? FOR UPDATE`,
+            [trimmedCode]
+        );
+
+        if (rows.length === 0) {
+            await connection.rollback();
+            return res.status(404).json({ success: false, msg: "❌ Invalid registration code." });
+        }
+
+        const codeEntry = rows[0];
+
+        // 3. CHECK: Ownership Logic
+        if (codeEntry.used_by && codeEntry.used_by.trim() !== "") {
+            // If already owned, check if it's the same person
+            if (codeEntry.used_by.trim() === trimmedName) {
+                await connection.commit();
+                return res.json({ success: true, msg: "✅ Login successful." });
+            } else {
+                // Different owner = Reject
+                await connection.rollback();
+                return res.status(403).json({ success: false, msg: "❌ This code belongs to another Facebook account." });
+            }
+        }
+
+        // 4. FIRST TIME CLAIM: Update the database permanently
+        await connection.execute(
+            `UPDATE labcode 
+             SET used_by = ?, 
+                 used_at = NOW(), 
+                 is_used = 1 
+             WHERE lab_code = ?`,
+            [trimmedName, trimmedCode]
+        );
+
+        // 5. Track in users table
+        await connection.execute(
+            `INSERT INTO users (lab_code, fb_name, coins, created_at, last_seen)
+             VALUES (?, ?, 0, NOW(), NOW())
+             ON DUPLICATE KEY UPDATE last_seen = NOW()`,
+            [trimmedCode, trimmedName]
+        );
+
+        await connection.commit();
+        return res.json({ success: true, msg: "✅ Registration successful." });
+
+    } catch (err) {
         await connection.rollback();
-
-        return res.status(403).json({
-            success: false,
-            msg: "❌ This code belongs to another Facebook account."
-        });
+        console.error("⚠️ Login Error:", err);
+        return res.status(500).json({ success: false, msg: "Database error. Try again later." });
+    } finally {
+        connection.release();
     }
-
-    // -------------------------------------------------
-    // FIRST USER CLAIMS THE CODE
-    // -------------------------------------------------
-    const [updateResult] = await connection.execute(
-        `
-        UPDATE labcode
-        SET
-            used_by = ?,
-            status = 'used',
-            is_used = 1,
-            used_at = NOW(),
-            assigned_at = COALESCE(assigned_at, NOW())
-        WHERE lab_code = ?
-        `,
-        [trimmedName, trimmedCode]
-    );
-
-    console.log("UPDATE RESULT:", updateResult);
-
-    if (updateResult.affectedRows === 0) {
-
-        await connection.rollback();
-
-        return res.status(500).json({
-            success: false,
-            msg: "❌ Failed to claim code."
-        });
-    }
-
-    // Create/update user record
-    await connection.execute(
-        `
-        INSERT INTO users
-        (
-            lab_code,
-            fb_name,
-            coins,
-            created_at,
-            last_seen
-        )
-        VALUES
-        (
-            ?, ?, 0, NOW(), NOW()
-        )
-        ON DUPLICATE KEY UPDATE
-            fb_name = VALUES(fb_name),
-            last_seen = NOW()
-        `,
-        [trimmedCode, trimmedName]
-    );
-
-    await connection.commit();
-
-    console.log(`✅ Code claimed by ${trimmedName}`);
-
-    return res.json({
-        success: true,
-        msg: "✅ Registration successful."
-    });
-
-} catch (err) {
-
-    await connection.rollback();
-
-    console.error("⚠️ Login Error:", err);
-
-    return res.status(500).json({
-        success: false,
-        msg: "Database error. Try again later."
-    });
-
-} finally {
-
-    connection.release();
-
-}
-
 });
 // ✅ WITHDRAW — saves to MySQL + Google Sheets
 app.post('/api/withdraw', async (req, res) => {
