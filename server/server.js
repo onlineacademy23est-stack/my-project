@@ -14,6 +14,7 @@ const pool = mysql.createPool(process.env.DB_URL);
 */
 
 app.post('/api/login', async (req, res) => {
+    console.log("LOGIN HIT", req.body);
 
     const labCode = (req.body.labCode || '').trim().toUpperCase();
     const fbName = (req.body.fbName || '').trim();
