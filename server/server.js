@@ -128,6 +128,23 @@ if (code.status === 'used') {
             `,
             [trimmedName, trimmedCode]
         );
+        console.log("BEFORE UPDATE", trimmedCode, trimmedName);
+
+const [updateResult] = await connection.execute(
+    `
+    UPDATE labcode
+    SET
+        status = 'used',
+        used_by = ?,
+        used_at = NOW(),
+        is_used = 1,
+        assigned_at = COALESCE(assigned_at, NOW())
+    WHERE lab_code = ?
+    `,
+    [trimmedName, trimmedCode]
+);
+
+console.log("UPDATE RESULT", updateResult);
 
         // Create / update user
         await connection.execute(
