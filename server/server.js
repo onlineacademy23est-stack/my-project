@@ -12,7 +12,7 @@ const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx8Jj2Yw55h5s
 app.use(cors());
 app.use(express.json());
 
-// ✅ MySQL Pool - may PORT na para sa Railway
+// ✅ MySQL Pool
 const pool = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
@@ -38,67 +38,154 @@ async function postWithRetry(url, data, config, retries = 3) {
     }
 }
 
-// ✅ Track user + coins helper
-async function upsertUser(labCode, fbName, amount) {
-    const sql = `
-        INSERT INTO users (lab_code, fb_name, coins)
-        VALUES (?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-            coins = coins + VALUES(coins),
-            last_seen = CURRENT_TIMESTAMP
-    `;
-    await pool.query(sql, [labCode, fbName, parseFloat(amount) || 0]);
-}
-
 // ==========================================
 // ✅ API Endpoints
 // ==========================================
 
-// Login endpoint with validation
+// ✅ LOGIN / REGISTRATION VALIDATION
 app.post('/api/login', async (req, res) => {
+
+    const connection = await pool.getConnection();
+
     try {
+
         const { labCode, fbName } = req.body;
 
         if (!labCode || !fbName) {
-            return res.status(400).json({ success: false, msg: "Missing labCode or fbName" });
+            return res.status(400).json({
+                success: false,
+                msg: "Lab code and Facebook name are required."
+            });
         }
 
-        // Check if lab code exists
-        const [rows] = await pool.query('SELECT * FROM lab_codes WHERE lab_code = ?', [labCode]);
+        const trimmedCode = labCode.trim().toUpperCase();
+        const trimmedName = fbName.trim();
 
+        await connection.beginTransaction();
+
+        const [rows] = await connection.execute(
+            `
+            SELECT *
+            FROM labcode
+            WHERE lab_code = ?
+            FOR UPDATE
+            `,
+            [trimmedCode]
+        );
+
+        // Code not found
         if (rows.length === 0) {
-            return res.status(403).json({ success: false, msg: "Invalid lab code!" });
+
+            await connection.rollback();
+
+            return res.status(404).json({
+                success: false,
+                msg: "❌ Invalid registration code."
+            });
         }
 
         const code = rows[0];
 
-        // Check if already used by someone else
-        if (code.is_used && code.assigned_to !== fbName) {
-            return res.status(403).json({ success: false, msg: "Lab code already taken!" });
+        // FB name must match assigned name
+        if (
+            !code.assigned_fb_name ||
+            code.assigned_fb_name.trim() !== trimmedName
+        ) {
+
+            await connection.rollback();
+
+            return res.status(403).json({
+                success: false,
+                msg: "❌ Facebook name does not match the assigned name for this code."
+            });
         }
 
-        // Lock it to this user
-        await pool.query(`
-            UPDATE lab_codes 
-            SET is_used = TRUE, assigned_to = ?, assigned_at = NOW()
+        // Code already used
+        if (code.status === 'used') {
+
+            // Allow same user to login again
+            if (code.used_by === trimmedName) {
+
+                await connection.commit();
+
+                return res.json({
+                    success: true,
+                    msg: "Login successful!"
+                });
+            }
+
+            await connection.rollback();
+
+            return res.status(403).json({
+                success: false,
+                msg: "❌ This code has already been used."
+            });
+        }
+
+        // First successful registration
+        await connection.execute(
+            `
+            UPDATE labcode
+            SET
+                status = 'used',
+                used_by = ?,
+                used_at = NOW(),
+                is_used = 1,
+                assigned_at = COALESCE(assigned_at, NOW())
             WHERE lab_code = ?
-        `, [fbName, labCode]);
+            `,
+            [trimmedName, trimmedCode]
+        );
 
-        // Track user
-        await pool.query(`
-            INSERT INTO users (lab_code, fb_name, coins)
-            VALUES (?, ?, 0)
-            ON DUPLICATE KEY UPDATE last_seen = CURRENT_TIMESTAMP
-        `, [labCode, fbName]);
+        // Create / update user
+        await connection.execute(
+            `
+            INSERT INTO users
+            (
+                lab_code,
+                fb_name,
+                coins,
+                created_at,
+                last_seen
+            )
+            VALUES
+            (
+                ?, ?, 0, NOW(), NOW()
+            )
+            ON DUPLICATE KEY UPDATE
+                fb_name = VALUES(fb_name),
+                last_seen = NOW()
+            `,
+            [trimmedCode, trimmedName]
+        );
 
-        res.json({ success: true, msg: "Login successful!" });
+        await connection.commit();
+
+        console.log(`✅ Registered: ${trimmedName} / ${trimmedCode}`);
+
+        return res.json({
+            success: true,
+            msg: "✅ Registration successful."
+        });
+
     } catch (err) {
-        console.error("⚠️ Login Error:", err.message);
-        res.status(500).json({ success: false, msg: "Database error" });
+
+        await connection.rollback();
+
+        console.error("⚠️ Login Error:", err);
+
+        return res.status(500).json({
+            success: false,
+            msg: "Database error. Try again later."
+        });
+
+    } finally {
+
+        connection.release();
+
     }
 });
-
-// Withdraw endpoint
+// ✅ WITHDRAW — saves to MySQL + Google Sheets
 app.post('/api/withdraw', async (req, res) => {
     console.log("📥 [REQUEST RECEIVED]: Processing payout...");
     const { labCode, fbName, amount } = req.body;
@@ -107,50 +194,71 @@ app.post('/api/withdraw', async (req, res) => {
         return res.status(400).json({ success: false, msg: "fbName and amount are required." });
     }
 
+    const trimmedCode = (labCode || "N/A").trim().toUpperCase();
+    const trimmedName = fbName.trim();
+
     try {
-        // Save withdrawal with labCode
-        const sql = "INSERT INTO withdrawals (lab_code, fb_name, amount, status) VALUES (?, ?, ?, 'pending')";
-        await pool.query(sql, [labCode || "N/A", fbName, amount]);
+        // Save withdrawal record
+        await pool.query(
+            "INSERT INTO withdrawals (lab_code, fb_name, amount, status) VALUES (?, ?, ?, 'pending')",
+            [trimmedCode, trimmedName, amount]
+        );
         console.log("📝 [MySQL]: Withdrawal saved!");
 
-        // Track user
-        await upsertUser(labCode || "N/A", fbName, amount);
+        // Update user coin total
+        await pool.query(`
+            INSERT INTO users (lab_code, fb_name, coins, created_at, last_seen)
+            VALUES (?, ?, ?, NOW(), NOW())
+            ON DUPLICATE KEY UPDATE
+                fb_name = VALUES(fb_name),
+                coins = coins + VALUES(coins),
+                last_seen = NOW()
+        `, [trimmedCode, trimmedName, parseFloat(amount) || 0]);
         console.log("👤 [MySQL]: User tracked!");
 
         // Send to Google Sheets
         const params = new URLSearchParams();
         params.append('timestamp', new Date().toLocaleString());
-        params.append('labCode', labCode || "N/A");
-        params.append('fbName', fbName);
+        params.append('labCode', trimmedCode);
+        params.append('fbName', trimmedName);
         params.append('amount', `$${amount}`);
 
         await postWithRetry(GOOGLE_SCRIPT_URL, params, {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
         });
+        console.log("📊 [Google Sheets]: Sent!");
 
         return res.json({ success: true, msg: "✅ Withdraw processed successfully!" });
+
     } catch (err) {
-        console.error("⚠️ Error:", err.message);
-        return res.status(500).json({ success: false, msg: "Failed to process withdrawal" });
+        console.error("⚠️ Withdraw Error:", err.message);
+        return res.status(500).json({ success: false, msg: "Failed to process withdrawal." });
     }
 });
 
-// Fetch users
+// ✅ GET ALL USERS — for your MySQL Workbench view / admin dashboard
 app.get('/api/users', async (req, res) => {
     try {
         const [rows] = await pool.query(`
-            SELECT lab_code, fb_name, coins AS total_coins, last_seen, created_at
-            FROM users
-            ORDER BY last_seen DESC
+            SELECT 
+                u.lab_code,
+                u.fb_name,
+                u.coins AS total_coins,
+                u.last_seen,
+                u.created_at,
+                lc.assigned_at AS first_login
+            FROM users u
+            LEFT JOIN labcode lc ON u.lab_code = lc.lab_code
+            ORDER BY u.last_seen DESC
         `);
         return res.json({ success: true, total_users: rows.length, users: rows });
     } catch (err) {
         console.error("⚠️ Error:", err.message);
-        return res.status(500).json({ success: false, msg: "Failed to fetch users" });
+        return res.status(500).json({ success: false, msg: "Failed to fetch users." });
     }
 });
 
-// Withdrawal history
+// ✅ GET WITHDRAWAL HISTORY
 app.get('/api/withdrawals', async (req, res) => {
     try {
         const [rows] = await pool.query(`
@@ -162,11 +270,11 @@ app.get('/api/withdrawals', async (req, res) => {
         return res.json({ success: true, data: rows });
     } catch (err) {
         console.error("⚠️ Error:", err.message);
-        return res.status(500).json({ success: false, msg: "Failed to fetch withdrawals" });
+        return res.status(500).json({ success: false, msg: "Failed to fetch withdrawals." });
     }
 });
 
-// Health check
+// ✅ Health check
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
