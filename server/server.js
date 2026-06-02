@@ -2,9 +2,10 @@ const express = require('express');
 const app = express();
 app.use(express.json());
 
+// Ito ay isang test endpoint
 app.post('/api/login', (req, res) => {
-    console.log("🔥 TEST: PUMASOK SA PINAKA-BAGONG VERSION NG CODE");
-    return res.status(404).json({ success: false, msg: "Lahat ng random ay dapat block dito" });
+    console.log("🔥 TESTING VERSION: 2026-JUNE-02-V1");
+    return res.status(404).json({ success: false, msg: "❌ BLOCKING ALL ACCESS" });
 });
 
-app.listen(10000, () => console.log("🚀 Live on 10000"));
+app.listen(10000, () => console.log("🚀 Server is running on 10000"));
