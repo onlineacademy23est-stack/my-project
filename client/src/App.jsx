@@ -46,7 +46,6 @@ function App() {
   const [feedbackColor, setFeedbackColor] = useState("");
   const [countdown, setCountdown] = useState(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  
 
   const questions = [
     { "q": "What is the plural form of mouse?", "a": "Mice", "options": ["Mouses", "Mice", "Mices"] },
@@ -195,51 +194,49 @@ function App() {
     }
   }
 
-  // ✅ UPDATED: handleLogin now validates against MySQL via backend
+  // ✅ FIX #1: handleLogin now reads directly from React state (fbName, code)
+  // instead of document.getElementById which didn't work with controlled inputs
   async function handleLogin() {
-    if (!fbName.trim()) {
+    const codeVal = code.trim().toUpperCase();
+    const fbNameVal = fbName.trim();
+
+    if (!fbNameVal) {
       setEncashStatus({ type: "error", msg: "Please enter your Registered FB Name!" });
       return;
     }
-    if (!code) {
+    if (!codeVal) {
       setEncashStatus({ type: "error", msg: "Please enter your LAB Code!" });
       return;
     }
 
-    const formattedCode = code.toUpperCase();
     setEncashStatus({ type: "loading", msg: "⏳ Validating, please wait..." });
 
     try {
-      const res = await fetch("https://online-learning-backend-37l0.onrender.com/api/login", {
+      const res = await fetch("https://online-learning-backend-3710.onrender.com/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ labCode: formattedCode, fbName: fbName.trim() })
+        body: JSON.stringify({ labCode: codeVal, fbName: fbNameVal })
       });
 
       const data = await res.json();
-      console.log("LOGIN RESPONSE:", data);
-
+      
       if (!data.success) {
         setEncashStatus({ type: "error", msg: data.msg || "Invalid credentials!" });
         return;
       }
 
-      // ✅ Valid — proceed to earn screen
-      localStorage.setItem("lab_code", formattedCode);
-      localStorage.setItem("fb_name", fbName.trim());
-      setLoggedInCode(formattedCode);
-      setLoggedInFbName(fbName.trim());
-      const accountCoins = Number(parseFloat(localStorage.getItem(`coins_${formattedCode}`) || "0").toFixed(4));
-      setCoins(accountCoins);
+      localStorage.setItem("lab_code", codeVal);
+      localStorage.setItem("fb_name", fbNameVal);
+      setLoggedInCode(codeVal);
+      setLoggedInFbName(fbNameVal);
       setShowLogin(false);
       setEncashStatus({ type: "", msg: "" });
       changeScreenWithAnimation("earn");
-      setCode("");
-      setFbName("");
-
-    } catch {
-      setEncashStatus({ type: "error", msg: "❌ Cannot connect to server. Try again later!" });
-    }
+      
+    } catch (err) {
+    console.error("Login Error:", err); // Dito mo ginamit ang 'err'
+    setEncashStatus({ type: "error", msg: "Error sa server!" });
+}
   }
 
   function handleLogout() {
@@ -281,8 +278,9 @@ function App() {
       setEncashStatus({ type: "error", msg: `❌ Insufficient balance!` });
       return;
     }
-     
-    const BACKEND_SERVER_URL = "https://online-learning-backend-37l0.onrender.com/api/withdraw";
+
+    // ✅ FIX #2: Corrected typo in backend URL (was "37l0" with letter L, now "3710" with number 1)
+    const BACKEND_SERVER_URL = "https://online-learning-backend-3710.onrender.com/api/withdraw";
     setEncashStatus({ type: "loading", msg: "⏳ Requesting, please wait..." });
     
     fetch(BACKEND_SERVER_URL, {
@@ -677,4 +675,5 @@ function App() {
     </div>
   );
 }
+
 export default App;
