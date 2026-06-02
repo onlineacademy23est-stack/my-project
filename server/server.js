@@ -86,41 +86,26 @@ app.post('/api/login', async (req, res) => {
 
         const code = rows[0];
 
-        // FB name must match assigned name
-        if (
-            !code.assigned_fb_name ||
-            code.assigned_fb_name.trim() !== trimmedName
-        ) {
+       // Code already claimed
+if (code.status === 'used') {
 
-            await connection.rollback();
+    if (code.used_by === trimmedName) {
 
-            return res.status(403).json({
-                success: false,
-                msg: "❌ Facebook name does not match the assigned name for this code."
-            });
-        }
+        await connection.commit();
 
-        // Code already used
-        if (code.status === 'used') {
+        return res.json({
+            success: true,
+            msg: "Login successful!"
+        });
+    }
 
-            // Allow same user to login again
-            if (code.used_by === trimmedName) {
+    await connection.rollback();
 
-                await connection.commit();
-
-                return res.json({
-                    success: true,
-                    msg: "Login successful!"
-                });
-            }
-
-            await connection.rollback();
-
-            return res.status(403).json({
-                success: false,
-                msg: "❌ This code has already been used."
-            });
-        }
+    return res.status(403).json({
+        success: false,
+        msg: "❌ This code belongs to another Facebook account."
+    });
+}
 
         // First successful registration
         await connection.execute(
