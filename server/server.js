@@ -1,12 +1,15 @@
 const express = require('express');
 const mysql = require('mysql2/promise');
-require('dotenv').config(); // Siguraduhin na naka-install ang dotenv
+const cors = require('cors'); // Import cors
+require('dotenv').config();
 
 const app = express();
 
+// Middleware
+app.use(cors()); // Allow requests from all origins (pwede mong i-restrict kung kailangan)
 app.use(express.json());
 
-// UPDATED: Ginamit natin ang config object para sigurado ang pag-connect
+// Database Pool
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
@@ -23,7 +26,6 @@ const pool = mysql.createPool({
 | LOGIN
 |--------------------------------------------------------------------------
 */
-
 app.post('/api/login', async (req, res) => {
     console.log("LOGIN HIT", req.body);
 
@@ -77,7 +79,6 @@ app.post('/api/login', async (req, res) => {
 | VERIFY SESSION
 |--------------------------------------------------------------------------
 */
-
 app.post('/api/verify', async (req, res) => {
     const labCode = (req.body.labCode || '').trim().toUpperCase();
     const fbName = (req.body.fbName || '').trim();
@@ -101,7 +102,8 @@ app.post('/api/verify', async (req, res) => {
     }
 });
 
+// Server Initialization
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => { // Dito idinagdag ang '0.0.0.0'
+    console.log(`🚀 Server running on port ${PORT}`);
 });
