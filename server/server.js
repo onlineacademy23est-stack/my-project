@@ -1,13 +1,25 @@
 const express = require('express');
 const mysql = require('mysql2/promise');
-const cors = require('cors'); // Import cors
+const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
 
-// Middleware
-app.use(cors()); // Allow requests from all origins (pwede mong i-restrict kung kailangan)
+// 1. Mas istriktong CORS para maiwasan ang blocking issues
+app.use(cors({
+    origin: '*', // Subukan muna natin 'all' para ma-isolate kung CORS ang problema
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
+
+// 2. Debugging: I-log kung nabasa ba ang ports (para makita sa Render Logs)
+console.log("Environment check:", {
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
+    node_env: process.env.NODE_ENV
+});
 
 // Database Pool
 const pool = mysql.createPool({
@@ -15,7 +27,7 @@ const pool = mysql.createPool({
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-    port: process.env.DB_PORT || 3306,
+    port: parseInt(process.env.DB_PORT) || 3306, // Ginawang integer
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
@@ -27,16 +39,14 @@ const pool = mysql.createPool({
 |--------------------------------------------------------------------------
 */
 app.post('/api/login', async (req, res) => {
-    console.log("LOGIN HIT", req.body);
+    // Siguraduhin na may request body
+    if (!req.body) return res.status(400).json({ success: false, msg: 'No data provided' });
 
     const labCode = (req.body.labCode || '').trim().toUpperCase();
     const fbName = (req.body.fbName || '').trim();
 
     if (!labCode || !fbName) {
-        return res.status(400).json({
-            success: false,
-            msg: 'LAB Code and Facebook Name are required.'
-        });
+        return res.status(400).json({ success: false, msg: 'LAB Code and Facebook Name are required.' });
     }
 
     try {
@@ -51,7 +61,6 @@ app.post('/api/login', async (req, res) => {
 
         const code = rows[0];
 
-        // FIRST CLAIM
         if (!code.used_by) {
             await pool.execute(
                 `UPDATE labcode SET used_by = ?, used_at = NOW(), is_used = 1 WHERE id = ?`,
@@ -60,50 +69,20 @@ app.post('/api/login', async (req, res) => {
             return res.json({ success: true, msg: 'Code claimed successfully.' });
         }
 
-        // SAME OWNER
         if (code.used_by.trim().toLowerCase() === fbName.trim().toLowerCase()) {
             return res.json({ success: true, msg: 'Welcome back.' });
         }
 
-        // DIFFERENT OWNER
         return res.status(403).json({ success: false, msg: 'This code belongs to another Facebook account.' });
 
     } catch (err) {
-        console.error('LOGIN ERROR:', err);
-        return res.status(500).json({ success: false, msg: 'Database error.' });
-    }
-});
-
-/*
-|--------------------------------------------------------------------------
-| VERIFY SESSION
-|--------------------------------------------------------------------------
-*/
-app.post('/api/verify', async (req, res) => {
-    const labCode = (req.body.labCode || '').trim().toUpperCase();
-    const fbName = (req.body.fbName || '').trim();
-
-    if (!labCode || !fbName) return res.json({ success: false });
-
-    try {
-        const [rows] = await pool.execute(
-            `SELECT lab_code, used_by FROM labcode WHERE lab_code = ?`,
-            [labCode]
-        );
-
-        if (rows.length === 0 || !rows[0].used_by || rows[0].used_by.trim().toLowerCase() !== fbName.trim().toLowerCase()) {
-            return res.json({ success: false });
-        }
-
-        return res.json({ success: true });
-    } catch (err) {
-        console.error('VERIFY ERROR:', err);
-        return res.status(500).json({ success: false });
+        console.error('DATABASE ERROR:', err);
+        return res.status(500).json({ success: false, msg: 'Database connection error.' });
     }
 });
 
 // Server Initialization
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, '0.0.0.0', () => { // Dito idinagdag ang '0.0.0.0'
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
 });
