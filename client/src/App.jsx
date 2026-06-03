@@ -132,7 +132,7 @@ function App() {
   }, []);
   // ✅ Keep Render backend alive
   useEffect(() => {
-  const ping = () => fetch("https://online-learning-backend-3710.onrender.com/health")
+  const ping = () => fetch("https://online-learning-backend-37l0.onrender.com/health")
   .catch(() => {});
   ping();
   const interval = setInterval(ping, 10 * 60 * 1000);
@@ -219,7 +219,7 @@ function App() {
     setEncashStatus({ type: "loading", msg: "⏳ Validating, please wait..." });
 
     try {
-      const API_URL = "https://online-learning-backend-3710.onrender.com";
+      const API_URL = "https://online-learning-backend-37l0.onrender.com";
       const res = await fetch(`${API_URL}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -287,8 +287,8 @@ function App() {
       return;
     }
 
-    // ✅ FIX #2: Corrected typo in backend URL (was "3710" with letter L, now "3710" with number 1)
-    const BACKEND_SERVER_URL = "https://online-learning-backend-3710.onrender.com/api/withdraw";
+    // ✅ FIX #2: Corrected typo in backend URL (was "37l0" with letter L, now "37l0" with number 1)
+    const BACKEND_SERVER_URL = "https://online-learning-backend-37l0.onrender.com/api/withdraw";
     setEncashStatus({ type: "loading", msg: "⏳ Requesting, please wait..." });
     
     fetch(BACKEND_SERVER_URL, {
