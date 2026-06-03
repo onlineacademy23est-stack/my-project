@@ -132,7 +132,7 @@ function App() {
   }, []);
   // ✅ Keep Render backend alive
   useEffect(() => {
-  const ping = () => fetch("https://online-learning-backend-37l0.onrender.com/health")
+  const ping = () => fetch("https://online-learning-backend-3710.onrender.com/health")
   .catch(() => {});
   ping();
   const interval = setInterval(ping, 10 * 60 * 1000);
@@ -288,7 +288,7 @@ function App() {
     }
 
     // ✅ FIX #2: Corrected typo in backend URL (was "37l0" with letter L, now "37l0" with number 1)
-    const BACKEND_SERVER_URL = "https://online-learning-backend-37l0.onrender.com/api/withdraw";
+    const BACKEND_SERVER_URL = "https://online-learning-backend-3710.onrender.com/api/withdraw";
     setEncashStatus({ type: "loading", msg: "⏳ Requesting, please wait..." });
     
     fetch(BACKEND_SERVER_URL, {
