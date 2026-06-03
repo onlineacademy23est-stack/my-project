@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const nameInput = document.getElementById("fb-name");
  
     // ✅ PUT YOUR ACTUAL RENDER URL HERE (check your Render dashboard)
-    const BACKEND_URL = "https://online-learning-backend-3710.onrender.com";
+    const BACKEND_URL = "https://online-learning-backend-37l0.onrender.com";
  
     loginButton.addEventListener("click", async (e) => {
         e.preventDefault();
