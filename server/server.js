@@ -5,33 +5,45 @@ require('dotenv').config();
 
 const app = express();
 
-// 1. Mas istriktong CORS para maiwasan ang blocking issues
+// 1. CORS Configuration: Pinapayagan ang Vercel client at local development
 app.use(cors({
-    origin: '*', // Subukan muna natin 'all' para ma-isolate kung CORS ang problema
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    origin: ["https://client-eight-lyart-25.vercel.app", "http://localhost:5173"],
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true
 }));
 
 app.use(express.json());
 
-// 2. Debugging: I-log kung nabasa ba ang ports (para makita sa Render Logs)
+// 2. Debugging: I-log ang environment config sa startup (makikita sa Render Logs)
 console.log("Environment check:", {
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,
+    database: process.env.DB_NAME,
     node_env: process.env.NODE_ENV
 });
 
-// Database Pool
+// 3. Database Pool
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-    port: parseInt(process.env.DB_PORT) || 3306, // Ginawang integer
+    port: parseInt(process.env.DB_PORT) || 3306,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
 });
+
+// Test connection sa startup
+pool.getConnection()
+    .then(connection => {
+        console.log("✅ Successfully connected to the database!");
+        connection.release();
+    })
+    .catch(err => {
+        console.error("❌ Database connection failed:", err);
+    });
 
 /*
 |--------------------------------------------------------------------------
@@ -39,8 +51,7 @@ const pool = mysql.createPool({
 |--------------------------------------------------------------------------
 */
 app.post('/api/login', async (req, res) => {
-    // Siguraduhin na may request body
-    if (!req.body) return res.status(400).json({ success: false, msg: 'No data provided' });
+    console.log("LOGIN HIT", req.body);
 
     const labCode = (req.body.labCode || '').trim().toUpperCase();
     const fbName = (req.body.fbName || '').trim();
@@ -61,6 +72,7 @@ app.post('/api/login', async (req, res) => {
 
         const code = rows[0];
 
+        // FIRST CLAIM
         if (!code.used_by) {
             await pool.execute(
                 `UPDATE labcode SET used_by = ?, used_at = NOW(), is_used = 1 WHERE id = ?`,
@@ -69,10 +81,12 @@ app.post('/api/login', async (req, res) => {
             return res.json({ success: true, msg: 'Code claimed successfully.' });
         }
 
+        // SAME OWNER
         if (code.used_by.trim().toLowerCase() === fbName.trim().toLowerCase()) {
             return res.json({ success: true, msg: 'Welcome back.' });
         }
 
+        // DIFFERENT OWNER
         return res.status(403).json({ success: false, msg: 'This code belongs to another Facebook account.' });
 
     } catch (err) {
@@ -81,7 +95,7 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// Server Initialization
+// 4. Server Initialization
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
