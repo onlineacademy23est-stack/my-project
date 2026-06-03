@@ -212,7 +212,8 @@ function App() {
     setEncashStatus({ type: "loading", msg: "⏳ Validating, please wait..." });
 
     try {
-      const res = await fetch("https://online-learning-backend-37l0.onrender.com/api/login", {
+      const API_URL = "https://online-learning-backend-37l0.onrender.com";
+      const res = await fetch(`${API_URL}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ labCode: codeVal, fbName: fbNameVal })
