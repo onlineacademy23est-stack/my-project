@@ -32,7 +32,8 @@ const pool = mysql.createPool({
     port: parseInt(process.env.DB_PORT) || 3306,
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
+    queueLimit: 0,
+    ssl: { rejectUnauthorized: false }
 });
 
 // Test connection sa startup
