@@ -287,7 +287,7 @@ function App() {
       return;
     }
 
-    // ✅ FIX #2: Corrected typo in backend URL (was "37l0" with letter L, now "37l0" with number 1)
+    // ✅ FIX #2: Corrected typo in backend URL (was "37l0" with letter L, now "37l0" with number l)
     const BACKEND_SERVER_URL = "https://online-learning-backend-37l0.onrender.com/api/withdraw";
     setEncashStatus({ type: "loading", msg: "⏳ Requesting, please wait..." });
     
