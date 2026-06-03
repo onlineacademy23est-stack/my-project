@@ -174,6 +174,11 @@ app.post('/api/withdraw', async (req, res) => {
         }
  
         console.log(`[WITHDRAW] 💸 ${fbName} | Code: ${labCode} | Amount: $${parsedAmount}`);
+
+await pool.execute(
+    `INSERT INTO withdrawals (lab_code, fb_name, amount) VALUES (?, ?, ?)`,
+    [labCode.trim().toUpperCase(), fbName.trim(), parsedAmount]
+);
  
         return res.json({
             success: true,
