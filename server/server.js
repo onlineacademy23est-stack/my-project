@@ -4,6 +4,10 @@ const cors = require('cors');
 require('dotenv').config();
  
 const app = express();
+
+app.get('/', (req, res) => {
+  res.status(200).json({ message: 'Server is running' });
+});
  
 // ─────────────────────────────────────────────
 // 1. CORS Configuration
