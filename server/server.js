@@ -5,9 +5,9 @@ require('dotenv').config();
 
 const app = express();
 
-// 1. CORS Configuration: Pinapayagan ang Vercel client at local development
+// 1. CORS Configuration
 app.use(cors({
-    origin: ["https://client-eight-lyart-25.vercel.app", "http://localhost:5173"],
+    origin: ["https://client-eight-lyart-25.vercel.app"],
     methods: ["GET", "POST", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
@@ -15,7 +15,7 @@ app.use(cors({
 
 app.use(express.json());
 
-// 2. Debugging: I-log ang environment config sa startup (makikita sa Render Logs)
+// 2. Debugging: I-log ang environment config sa startup
 console.log("Environment check:", {
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,
@@ -44,6 +44,15 @@ pool.getConnection()
     .catch(err => {
         console.error("❌ Database connection failed:", err);
     });
+
+/*
+|--------------------------------------------------------------------------
+| HEALTH CHECK — Para hindi matulog ang Render free tier
+|--------------------------------------------------------------------------
+*/
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -92,6 +101,48 @@ app.post('/api/login', async (req, res) => {
     } catch (err) {
         console.error('DATABASE ERROR:', err);
         return res.status(500).json({ success: false, msg: 'Database connection error.' });
+    }
+});
+
+/*
+|--------------------------------------------------------------------------
+| WITHDRAW
+|--------------------------------------------------------------------------
+*/
+app.post('/api/withdraw', async (req, res) => {
+    console.log("WITHDRAW HIT", req.body);
+
+    const { labCode, fbName, amount } = req.body;
+
+    if (!labCode || !fbName || !amount) {
+        return res.status(400).json({ success: false, msg: 'Missing required fields.' });
+    }
+
+    try {
+        const [rows] = await pool.execute(
+            `SELECT id, used_by FROM labcode WHERE lab_code = ?`,
+            [labCode.trim().toUpperCase()]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, msg: 'LAB Code not found.' });
+        }
+
+        const code = rows[0];
+
+        // Verify name match
+        if (!code.used_by || code.used_by.trim().toLowerCase() !== fbName.trim().toLowerCase()) {
+            return res.status(403).json({ success: false, msg: 'Name mismatch. Unauthorized withdrawal.' });
+        }
+
+        // Log the withdrawal request (optional: save to DB)
+        console.log(`💸 Withdrawal request: ${fbName} | Code: ${labCode} | Amount: $${amount}`);
+
+        return res.json({ success: true, msg: `Withdrawal of $${amount} has been submitted successfully.` });
+
+    } catch (err) {
+        console.error('WITHDRAW ERROR:', err);
+        return res.status(500).json({ success: false, msg: 'Database error during withdrawal.' });
     }
 });
 
