@@ -130,7 +130,14 @@ function App() {
       channel.close();
     };
   }, []);
-
+  // ✅ Keep Render backend alive
+  useEffect(() => {
+  const ping = () => fetch("https://online-learning-backend-37l0.onrender.com/health")
+  .catch(() => {});
+  ping();
+  const interval = setInterval(ping, 10 * 60 * 1000);
+  return () => clearInterval(interval);
+  }, []);  
   useEffect(() => {
     if (Notification.permission === "default") {
       Notification.requestPermission();
