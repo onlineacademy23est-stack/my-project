@@ -12,8 +12,12 @@ app.get('/', (req, res) => {
 // ─────────────────────────────────────────────
 // 1. CORS Configuration
 // ─────────────────────────────────────────────
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : ["https://client-eight-lyart-25.vercel.app"];
+
 app.use(cors({
-    origin: ["https://client-agvm5y0e9-onlineacademy23est-stacks-projects.vercel.app"],
+    origin: allowedOrigins,
     methods: ["GET", "POST", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
@@ -55,21 +59,6 @@ pool.getConnection()
     .catch(err => {
         console.error("❌ Database connection failed:", err.message);
     });
- 
-// ─────────────────────────────────────────────
-// 4. Self-Ping para hindi matulog ang Render
-//    (Free tier nag-iinactive pagkatapos ng 15 mins)
-// ─────────────────────────────────────────────
-const SELF_URL = process.env.RENDER_EXTERNAL_URL || `http://localhost:${process.env.PORT || 10000}`;
- 
-setInterval(async () => {
-    try {
-        const res = await fetch(`${SELF_URL}/health`);
-        console.log(`🏓 Self-ping OK — ${new Date().toISOString()}`);
-    } catch (err) {
-        console.warn("⚠️  Self-ping failed:", err.message);
-    }
-}, 10 * 60 * 1000); // Every 10 minutes
  
 // ─────────────────────────────────────────────
 // ROUTES
@@ -175,10 +164,10 @@ app.post('/api/withdraw', async (req, res) => {
  
         console.log(`[WITHDRAW] 💸 ${fbName} | Code: ${labCode} | Amount: $${parsedAmount}`);
 
-await pool.execute(
-    `INSERT INTO withdrawals (lab_code, fb_name, amount) VALUES (?, ?, ?)`,
-    [labCode.trim().toUpperCase(), fbName.trim(), parsedAmount]
-);
+        await pool.execute(
+            `INSERT INTO withdrawals (lab_code, fb_name, amount) VALUES (?, ?, ?)`,
+            [labCode.trim().toUpperCase(), fbName.trim(), parsedAmount]
+        );
  
         return res.json({
             success: true,
@@ -192,7 +181,7 @@ await pool.execute(
 });
  
 // ─────────────────────────────────────────────
-// 5. 404 Catch-all (para ma-detect ang maling routes)
+// 4. 404 Catch-all
 // ─────────────────────────────────────────────
 app.use((req, res) => {
     console.warn(`[404] ${req.method} ${req.url}`);
@@ -200,7 +189,7 @@ app.use((req, res) => {
 });
  
 // ─────────────────────────────────────────────
-// 6. Global Error Handler
+// 5. Global Error Handler
 // ─────────────────────────────────────────────
 app.use((err, req, res, next) => {
     console.error('[UNHANDLED ERROR]', err);
@@ -208,9 +197,9 @@ app.use((err, req, res, next) => {
 });
  
 // ─────────────────────────────────────────────
-// 7. Server Start
+// 6. Server Start
 // ─────────────────────────────────────────────
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
 });
