@@ -130,9 +130,9 @@ function App() {
       channel.close();
     };
   }, []);
-  // ✅ Keep Render backend alive
+  
   useEffect(() => {
-  const ping = () => fetch("https://online-learning-backend-37l0.onrender.com/health")
+  const ping = () => fetch("https://my-project-production-3050.up.railway.app/health")
   .catch(() => {});
   ping();
   const interval = setInterval(ping, 10 * 60 * 1000);
@@ -219,7 +219,7 @@ function App() {
     setEncashStatus({ type: "loading", msg: "⏳ Validating, please wait..." });
 
     try {
-      const API_URL = "https://online-learning-backend-37l0.onrender.com";
+      const API_URL = "https://your-project.railway.app";
       const res = await fetch(`${API_URL}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -288,7 +288,7 @@ function App() {
     }
 
   
-    const BACKEND_SERVER_URL = "https://online-learning-backend-37l0.onrender.com/api/withdraw";
+    const BACKEND_SERVER_URL = "https://my-project-production-3050.up.railway.app/api/withdraw";
     setEncashStatus({ type: "loading", msg: "⏳ Requesting, please wait..." });
     
     fetch(BACKEND_SERVER_URL, {

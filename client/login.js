@@ -3,8 +3,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const codeInput = document.getElementById("lab-code");
     const nameInput = document.getElementById("fb-name");
  
-    // ✅ PUT YOUR ACTUAL RENDER URL HERE (check your Render dashboard)
-    const BACKEND_URL = "https://online-learning-backend-37l0.onrender.com";
+    
+    const BACKEND_URL = "https://my-project-production-3050.up.railway.app";
  
     loginButton.addEventListener("click", async (e) => {
         e.preventDefault();
