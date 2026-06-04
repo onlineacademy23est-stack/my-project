@@ -13,7 +13,10 @@ app.get('/', (req, res) => {
 // 1. CORS Configuration
 // ─────────────────────────────────────────────
 app.use(cors({
-    origin: ["https://client-agvm5y0e9-onlineacademy23est-stacks-projects.vercel.app"],
+    origin: [
+        "https://client-eight-lyart-25.vercel.app",
+        "https://client-agvm5y0e9-onlineacademy23est-stacks-projects.vercel.app"
+    ],
     methods: ["GET", "POST", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
