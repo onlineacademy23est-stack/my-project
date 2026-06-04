@@ -1,5 +1,5 @@
 const express = require('express');
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 const cors = require('cors');
 require('dotenv').config();
  
@@ -12,12 +12,8 @@ app.get('/', (req, res) => {
 // ─────────────────────────────────────────────
 // 1. CORS Configuration
 // ─────────────────────────────────────────────
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : ["https://client-eight-lyart-25.vercel.app"];
-
 app.use(cors({
-    origin: allowedOrigins,
+    origin: ["https://client-agvm5y0e9-onlineacademy23est-stacks-projects.vercel.app"],
     methods: ["GET", "POST", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
@@ -29,36 +25,43 @@ app.use(express.json());
 // 2. Environment Check on Startup
 // ─────────────────────────────────────────────
 console.log("🔍 Environment check:", {
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    database: process.env.DB_NAME,
+    database_url: process.env.DATABASE_URL ? "✅ SET" : "❌ NOT SET",
     node_env: process.env.NODE_ENV
 });
  
 // ─────────────────────────────────────────────
-// 3. Database Pool
+// 3. Database Pool (PostgreSQL)
 // ─────────────────────────────────────────────
-const pool = mysql.createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: parseInt(process.env.DB_PORT) || 3306,
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0,
-    connectTimeout: 10000
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
 });
  
 // Test DB connection on startup
-pool.getConnection()
-    .then(connection => {
+pool.connect()
+    .then(client => {
         console.log("✅ Successfully connected to the database!");
-        connection.release();
+        client.release();
     })
     .catch(err => {
         console.error("❌ Database connection failed:", err.message);
     });
+ 
+// ─────────────────────────────────────────────
+// 4. Self-Ping para hindi matulog ang server
+// ─────────────────────────────────────────────
+const SELF_URL = process.env.RAILWAY_STATIC_URL
+    ? `https://${process.env.RAILWAY_STATIC_URL}`
+    : `http://localhost:${process.env.PORT || 10000}`;
+ 
+setInterval(async () => {
+    try {
+        const res = await fetch(`${SELF_URL}/health`);
+        console.log(`🏓 Self-ping OK — ${new Date().toISOString()}`);
+    } catch (err) {
+        console.warn("⚠️  Self-ping failed:", err.message);
+    }
+}, 10 * 60 * 1000); // Every 10 minutes
  
 // ─────────────────────────────────────────────
 // ROUTES
@@ -88,10 +91,13 @@ app.post('/api/login', async (req, res) => {
     }
  
     try {
-        const [rows] = await pool.execute(
-            `SELECT id, lab_code, is_used, used_by, used_at FROM labcode WHERE lab_code = ?`,
+        // PostgreSQL: $1 placeholder, result.rows
+        const result = await pool.query(
+            `SELECT id, lab_code, is_used, used_by, used_at FROM labcode WHERE lab_code = $1`,
             [labCode]
         );
+
+        const rows = result.rows;
  
         if (rows.length === 0) {
             return res.status(404).json({ success: false, msg: 'Invalid LAB Code.' });
@@ -101,8 +107,8 @@ app.post('/api/login', async (req, res) => {
  
         // First claim — walang naka-assign na owner
         if (!code.used_by) {
-            await pool.execute(
-                `UPDATE labcode SET used_by = ?, used_at = NOW(), is_used = 1 WHERE id = ?`,
+            await pool.query(
+                `UPDATE labcode SET used_by = $1, used_at = NOW(), is_used = 1 WHERE id = $2`,
                 [fbName, code.id]
             );
             console.log(`[LOGIN] ✅ Code claimed by: ${fbName}`);
@@ -145,10 +151,12 @@ app.post('/api/withdraw', async (req, res) => {
     }
  
     try {
-        const [rows] = await pool.execute(
-            `SELECT id, used_by FROM labcode WHERE lab_code = ?`,
+        const result = await pool.query(
+            `SELECT id, used_by FROM labcode WHERE lab_code = $1`,
             [labCode.trim().toUpperCase()]
         );
+
+        const rows = result.rows;
  
         if (rows.length === 0) {
             return res.status(404).json({ success: false, msg: 'LAB Code not found.' });
@@ -164,8 +172,8 @@ app.post('/api/withdraw', async (req, res) => {
  
         console.log(`[WITHDRAW] 💸 ${fbName} | Code: ${labCode} | Amount: $${parsedAmount}`);
 
-        await pool.execute(
-            `INSERT INTO withdrawals (lab_code, fb_name, amount) VALUES (?, ?, ?)`,
+        await pool.query(
+            `INSERT INTO withdrawals (lab_code, fb_name, amount) VALUES ($1, $2, $3)`,
             [labCode.trim().toUpperCase(), fbName.trim(), parsedAmount]
         );
  
@@ -181,7 +189,7 @@ app.post('/api/withdraw', async (req, res) => {
 });
  
 // ─────────────────────────────────────────────
-// 4. 404 Catch-all
+// 5. 404 Catch-all
 // ─────────────────────────────────────────────
 app.use((req, res) => {
     console.warn(`[404] ${req.method} ${req.url}`);
@@ -189,7 +197,7 @@ app.use((req, res) => {
 });
  
 // ─────────────────────────────────────────────
-// 5. Global Error Handler
+// 6. Global Error Handler
 // ─────────────────────────────────────────────
 app.use((err, req, res, next) => {
     console.error('[UNHANDLED ERROR]', err);
@@ -197,9 +205,9 @@ app.use((err, req, res, next) => {
 });
  
 // ─────────────────────────────────────────────
-// 6. Server Start
+// 7. Server Start
 // ─────────────────────────────────────────────
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
 });
