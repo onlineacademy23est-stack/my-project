@@ -10,7 +10,32 @@ function App() {
   const RETURN_TIME = "Monday at 12:00 AM";
 
   const checkIfMaintenanceActive = () => {
-    localStorage.removeItem("site_maintenance");
+    if (localStorage.getItem("site_maintenance") === "true") {
+      const now = new Date();
+      if (now.getDay() === 1) {
+        localStorage.removeItem("site_maintenance");
+        return false;
+      }
+      return true;
+    }
+
+    const now = new Date();
+    const day = now.getDay();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+
+    if (day === 5) {
+      if (hours > 23 || (hours === 23 && minutes >= 50)) {
+        localStorage.setItem("site_maintenance", "true");
+        return true;
+      }
+    }
+
+    if (day === 6 || day === 0) {
+      localStorage.setItem("site_maintenance", "true");
+      return true;
+    }
+
     return false;
   };
 
