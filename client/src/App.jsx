@@ -15,7 +15,7 @@ function App() {
   const checkIfMaintenanceActive = () => {
     const now = new Date();
     const day = now.getDay();     // 0=Sun, 1=Mon, ..., 5=Fri, 6=Sat
-    const hours = now.getHours();
+    const hours = now.getUTCHours() + 8;
     const minutes = now.getMinutes();
 
     // Friday 11:50 PM onwards
