@@ -9,32 +9,20 @@ function App() {
   
   const RETURN_TIME = "Monday at 12:00 AM";
 
+  // ✅ FIX: Removed localStorage caching — it caused stale/wrong state.
+  // Now purely real-time based on the current date/time.
+  // Also fixed: `hours > 23` is impossible (max is 23), removed that dead condition.
   const checkIfMaintenanceActive = () => {
-    if (localStorage.getItem("site_maintenance") === "true") {
-      const now = new Date();
-      if (now.getDay() === 1) {
-        localStorage.removeItem("site_maintenance");
-        return false;
-      }
-      return true;
-    }
-
     const now = new Date();
-    const day = now.getDay();
+    const day = now.getDay();     // 0=Sun, 1=Mon, ..., 5=Fri, 6=Sat
     const hours = now.getHours();
     const minutes = now.getMinutes();
 
-    if (day === 5) {
-      if (hours > 23 || (hours === 23 && minutes >= 50)) {
-        localStorage.setItem("site_maintenance", "true");
-        return true;
-      }
-    }
+    // Friday 11:50 PM onwards
+    if (day === 5 && hours === 23 && minutes >= 50) return true;
 
-    if (day === 6 || day === 0) {
-      localStorage.setItem("site_maintenance", "true");
-      return true;
-    }
+    // Saturday or Sunday — full day maintenance
+    if (day === 6 || day === 0) return true;
 
     return false;
   };
@@ -157,12 +145,14 @@ function App() {
   }, []);
   
   useEffect(() => {
-  const ping = () => fetch("https://my-project-production-3050.up.railway.app/health")
-  .catch(() => {});
-  ping();
-  const interval = setInterval(ping, 10 * 60 * 1000);
-  return () => clearInterval(interval);
-  }, []);  
+    const ping = () => fetch("https://my-project-production-3050.up.railway.app/health")
+      .catch(() => {});
+    ping();
+    const interval = setInterval(ping, 10 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // ✅ FIX: Maintenance interval checker — now uses clean real-time logic
   useEffect(() => {
     if (Notification.permission === "default") {
       Notification.requestPermission();
@@ -226,8 +216,6 @@ function App() {
     }
   }
 
-  // ✅ FIX #1: handleLogin now reads directly from React state (fbName, code)
-  // instead of document.getElementById which didn't work with controlled inputs
   async function handleLogin() {
     const codeVal = code.trim().toUpperCase();
     const fbNameVal = fbName.trim();
@@ -267,9 +255,9 @@ function App() {
       changeScreenWithAnimation("earn");
       
     } catch (err) {
-    console.error("Login Error:", err); // Dito mo ginamit ang 'err'
-    setEncashStatus({ type: "error", msg: "Error sa server!" });
-}
+      console.error("Login Error:", err);
+      setEncashStatus({ type: "error", msg: "Error sa server!" });
+    }
   }
 
   function handleLogout() {
@@ -312,7 +300,6 @@ function App() {
       return;
     }
 
-  
     const BACKEND_SERVER_URL = "https://my-project-production-3050.up.railway.app/api/withdraw";
     setEncashStatus({ type: "loading", msg: "⏳ Requesting, please wait..." });
     
@@ -333,7 +320,7 @@ function App() {
       const newBalance = Number((coins - amount).toFixed(4));
       setCoins(newBalance);
       localStorage.setItem(`coins_${loggedInCode}`, newBalance);
- 
+
       setEncashStatus({ type: "success", msg: "✅ Request recorded!" });
       setTimeout(() => setShowEncashModal(false), 2000);
     })
@@ -376,6 +363,48 @@ function App() {
           >
             Close This Tab
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ FIX: Maintenance screen was MISSING from the render — this is why it never showed!
+  if (isMaintenance) {
+    return (
+      <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center p-6 z-[9999] text-center">
+        <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#fff_1px,transparent_1px),linear-gradient(to_bottom,#fff_1px,transparent_1px)] bg-[size:3rem_3rem] pointer-events-none"></div>
+        <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="absolute bottom-[10%] right-[-10%] w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+
+        <div className="relative z-10 max-w-sm">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-6">
+            <span className="text-3xl">🔧</span>
+          </div>
+
+          <h1 className="text-2xl font-black text-white mb-3 tracking-tight">
+            Weekend Maintenance
+          </h1>
+
+          <p className="text-slate-400 text-sm leading-relaxed mb-2">
+            Ang <span className="text-white font-bold">Online Learning Academy</span> ay sarado ngayon para sa maintenance.
+          </p>
+          <p className="text-slate-500 text-xs leading-relaxed mb-8">
+            Bumalik tayo sa <span className="text-amber-400 font-bold">{RETURN_TIME}</span>. Salamat sa inyong pasensya!
+          </p>
+
+          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 mb-6">
+            <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest mb-1">Maintenance Schedule</p>
+            <p className="text-xs text-slate-400">Every Friday 11:50 PM – Sunday 11:59 PM</p>
+          </div>
+
+          <a
+            href={OFFICIAL_FB_PAGE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full inline-flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 py-3.5 rounded-xl font-bold text-sm transition-all active:scale-95 border border-slate-700/40"
+          >
+            <span>📘</span> Visit Our Facebook Page
+          </a>
         </div>
       </div>
     );
